@@ -69,6 +69,17 @@ class TestGitHubIntegration(unittest.TestCase):
         self.assertIn("Identical image found", body)
         self.assertIn("cv-dataset-auditor", body)
 
+    def test_issue_body_strips_absolute_paths(self):
+        """Regression: public issue bodies must not leak local absolute paths."""
+        from cv_dataset_auditor.github_integration import build_issue_body
+        report = self._sample_report()
+        # Inject a Windows-style absolute path
+        report["findings"][0]["file"] = r"C:\Users\素质\secret\demo\train_0.jpg"
+        body = build_issue_body(report)
+        self.assertNotIn("C:\\", body)
+        self.assertNotIn("Users", body)
+        self.assertIn("train_0.jpg", body)
+
     def test_create_issue_makes_post_request(self):
         from cv_dataset_auditor import github_integration as gh
 

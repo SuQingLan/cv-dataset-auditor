@@ -214,6 +214,9 @@ def build_issue_body(report: Dict[str, Any]) -> str:
         lines.append("|------|------|------|------|")
         for f_ in findings[:50]:  # cap to keep issue readable
             file_name = f_.get("file", "")
+            # Keep only the basename in public issues to avoid leaking
+            # private local paths (e.g. C:\\Users\\...) into a public repo.
+            file_name = str(file_name).replace("\\", "/").rsplit("/", 1)[-1]
             lines.append(
                 f"| {f_.get('severity', '')} | {f_.get('category', '')} | "
                 f"`{file_name}` | {f_.get('message', '')} |"
