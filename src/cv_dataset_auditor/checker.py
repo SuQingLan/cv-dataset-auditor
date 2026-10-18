@@ -154,9 +154,13 @@ def check_split_leakage(
         hashes: Dict[str, List[Path]] = {}
         for img in split_layout.image_files:
             try:
+                # Chunked MD5 for Python 3.10 compatibility
+                # (hashlib.file_digest was added in Python 3.11).
+                digest = hashlib.md5()
                 with open(img, 'rb') as f:
-                    h = hashlib.file_digest(f, 'md5').hexdigest()
-                hashes.setdefault(h, []).append(img)
+                    for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                        digest.update(chunk)
+                hashes.setdefault(digest.hexdigest(), []).append(img)
             except Exception:
                 continue
         split_hashes[split_name] = hashes
