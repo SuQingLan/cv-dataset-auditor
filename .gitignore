@@ -27,3 +27,7 @@ demo_dataset/
 
 # Test artifacts
 *.log.github/
+
+# Generated example outputs
+demo_dataset/
+audit-report/
