@@ -139,6 +139,23 @@ class TestGitHubIntegration(unittest.TestCase):
         self.assertIn("403", str(ctx.exception))
         self.assertIn("403", str(ctx.exception))
 
+    def test_sanitize_report_for_upload(self):
+        """Regression: uploaded reports must not contain local absolute paths."""
+        from cv_dataset_auditor.github_integration import sanitize_report_for_upload
+        report = self._sample_report()
+        report["findings"][0]["file"] = r"C:\Users\素质\secret\demo\train_0.jpg"
+        report["findings"][0]["message"] = (
+            "cannot identify image file 'C:\\Users\\素质\\secret\\corrupt.jpg'"
+        )
+        clean = sanitize_report_for_upload(report)
+        self.assertNotIn("C:\\", json.dumps(clean))
+        self.assertNotIn("Users", json.dumps(clean))
+        self.assertIn("train_0.jpg", clean["findings"][0]["file"])
+        self.assertIn("corrupt.jpg", clean["findings"][0]["message"])
+        # Original report must be untouched
+        self.assertIn(r"C:\Users\素质\secret\demo\train_0.jpg",
+                      report["findings"][0]["file"])
+
     def test_submit_audit_issue_title(self):
         from cv_dataset_auditor.github_integration import submit_audit_issue
         with mock.patch(

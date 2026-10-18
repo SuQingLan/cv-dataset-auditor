@@ -183,7 +183,10 @@ def main(args: Optional[List[str]] = None) -> int:
         if opts.gh_upload_report:
             try:
                 stamp = datetime.now().strftime("%Y-%m-%d")
-                content = (output_dir / "report.json").read_bytes()
+                # Upload a sanitized copy: local report keeps absolute paths,
+                # the public copy must not leak machine paths.
+                clean_report = gh.sanitize_report_for_upload(report)
+                content = json.dumps(clean_report, ensure_ascii=False, indent=2).encode("utf-8")
                 result = gh.upload_file(
                     opts.gh_repo,
                     f"reports/audit-{stamp}.json",

@@ -250,6 +250,30 @@ def build_issue_body(report: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def sanitize_report_for_upload(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of an audit report with local absolute paths removed.
+
+    The local report keeps full paths for reproducibility; the uploaded
+    copy must not leak private machine paths into a public repository.
+    """
+    import copy
+    clean = copy.deepcopy(report)
+
+    for f_ in clean.get("findings", []):
+        if "file" in f_:
+            f_["file"] = str(f_["file"]).replace("\\", "/").rsplit("/", 1)[-1]
+        if "message" in f_:
+            f_["message"] = _strip_local_paths(f_["message"])
+
+    for e in clean.get("errors", []):
+        if "path" in e:
+            e["path"] = str(e["path"]).replace("\\", "/").rsplit("/", 1)[-1]
+        if "message" in e:
+            e["message"] = _strip_local_paths(e["message"])
+
+    return clean
+
+
 def submit_audit_issue(
     repo: str,
     report: Dict[str, Any],
