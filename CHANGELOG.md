@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
+## [0.2.1] - 2026-10-18
+
+### Fixed
+
+- **Python 3.10 兼容性**：`hashlib.file_digest` 是 Python 3.11+ API，在 3.10 下抛 `AttributeError`（泄漏检测静默失败，返回空结果）；改用分块读取 MD5（`checker.py`）。由远端 CI 的 3.10 矩阵暴露。
+
+### Changed
+
+- GitHub Actions CI 正式上线并验证通过：Python 3.10 / 3.12 / 3.14 三版本矩阵全绿。
+
 ## [0.2.0] - 2026-10-18
 
 ### Added
