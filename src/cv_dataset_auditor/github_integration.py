@@ -159,6 +159,23 @@ def upload_file(
     )
 
 
+def _strip_local_paths(text: str) -> str:
+    """Remove local absolute paths from a message for public display.
+
+    Handles Windows (C:\\...) and POSIX (/home/...) paths embedded in
+    exception messages (e.g. "cannot identify image file 'C:\\Users\\...'").
+    """
+    import re
+    result = str(text)
+
+    # Windows absolute paths: drive letter followed by \\ or /
+    result = re.sub(r"[A-Za-z]:[\\/][^\s'\"]+", lambda m: m.group(0).split("\\")[-1].split("/")[-1], result)
+    # POSIX absolute paths starting with /
+    result = re.sub(r"/[^\s'\"]+", lambda m: m.group(0).split("/")[-1], result)
+
+    return result
+
+
 def build_issue_body(report: Dict[str, Any]) -> str:
     """Build a Markdown issue body summarizing an audit report.
 
@@ -217,9 +234,10 @@ def build_issue_body(report: Dict[str, Any]) -> str:
             # Keep only the basename in public issues to avoid leaking
             # private local paths (e.g. C:\\Users\\...) into a public repo.
             file_name = str(file_name).replace("\\", "/").rsplit("/", 1)[-1]
+            message = _strip_local_paths(f_.get("message", ""))
             lines.append(
                 f"| {f_.get('severity', '')} | {f_.get('category', '')} | "
-                f"`{file_name}` | {f_.get('message', '')} |"
+                f"`{file_name}` | {message} |"
             )
         if len(findings) > 50:
             lines.append(f"| ... | 共 {len(findings)} 条，以上仅显示前 50 条 | | |")

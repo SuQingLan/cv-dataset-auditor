@@ -73,12 +73,16 @@ class TestGitHubIntegration(unittest.TestCase):
         """Regression: public issue bodies must not leak local absolute paths."""
         from cv_dataset_auditor.github_integration import build_issue_body
         report = self._sample_report()
-        # Inject a Windows-style absolute path
+        # Inject a Windows-style absolute path in file AND message
         report["findings"][0]["file"] = r"C:\Users\素质\secret\demo\train_0.jpg"
+        report["findings"][0]["message"] = (
+            "cannot identify image file 'C:\\Users\\素质\\secret\\demo\\corrupt.jpg'"
+        )
         body = build_issue_body(report)
         self.assertNotIn("C:\\", body)
         self.assertNotIn("Users", body)
         self.assertIn("train_0.jpg", body)
+        self.assertIn("corrupt.jpg", body)
 
     def test_create_issue_makes_post_request(self):
         from cv_dataset_auditor import github_integration as gh
