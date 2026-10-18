@@ -73,6 +73,24 @@ cv-audit demo_dataset -c 3 --fail-on warning # 有 error 或 warning 返回 1
 cv-audit demo_dataset -c 3 --fail-on never   # 永远返回 0
 ```
 
+### 6. GitHub API 集成（提交审计结果）
+
+审计完成后可自动向 GitHub 仓库提交结果：
+
+```bash
+# 自动创建 Issue（问题清单 + 统计摘要）
+GITHUB_TOKEN=your_token cv-audit demo_dataset -c 3 -o audit-report \
+  --gh-repo owner/repo
+
+# 同时把 report.json 上传到仓库 reports/ 目录
+GITHUB_TOKEN=your_token cv-audit demo_dataset -c 3 -o audit-report \
+  --gh-repo owner/repo --gh-upload-report
+```
+
+- token 通过 `GITHUB_TOKEN` 环境变量或 `--gh-token` 提供，**绝不写入任何报告文件**。
+- 无 token 时该功能优雅跳过（打印错误、返回码 2），不影响本地审计结果。
+- 使用标准库 `urllib`，零新增依赖；认证失败/余额不足不自动重试。
+
 ## 命令行参数
 
 | 参数 | 说明 | 默认 |

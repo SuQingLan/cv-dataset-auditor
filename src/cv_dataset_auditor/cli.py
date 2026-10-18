@@ -1,7 +1,9 @@
 """Command-line interface for cv-dataset-auditor."""
 
 import argparse
+import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -65,6 +67,24 @@ def main(args: Optional[List[str]] = None) -> int:
         "-q", "--quiet",
         action="store_true",
         help="Minimal output.",
+    )
+    parser.add_argument(
+        "--gh-repo",
+        type=str,
+        default=None,
+        help="owner/repo to submit the audit report issue to (GitHub API integration).",
+    )
+    parser.add_argument(
+        "--gh-upload-report",
+        action="store_true",
+        default=False,
+        help="Also upload report.json to the target repo (requires --gh-repo).",
+    )
+    parser.add_argument(
+        "--gh-token",
+        type=str,
+        default=None,
+        help="GitHub token. If omitted, reads GITHUB_TOKEN from the environment.",
     )
 
     opts = parser.parse_args(args)
@@ -143,6 +163,38 @@ def main(args: Optional[List[str]] = None) -> int:
 
     if not opts.quiet:
         print(f"\nReports saved to: {output_dir}")
+
+    # Phase 7: GitHub API integration (optional)
+    if opts.gh_repo:
+        from . import github_integration as gh
+        token = opts.gh_token or gh.get_token()
+        if not token:
+            print("Error: --gh-repo requires a token via --gh-token or GITHUB_TOKEN env.")
+            return 2
+        report = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+        try:
+            issue = gh.submit_audit_issue(opts.gh_repo, report, token)
+            if not opts.quiet:
+                print(f"GitHub issue created: {issue.get('html_url', '')}")
+        except gh.GitHubAPIError as e:
+            print(f"GitHub issue creation failed: {e}")
+            return 1
+
+        if opts.gh_upload_report:
+            try:
+                stamp = datetime.now().strftime("%Y-%m-%d")
+                content = (output_dir / "report.json").read_bytes()
+                result = gh.upload_file(
+                    opts.gh_repo,
+                    f"reports/audit-{stamp}.json",
+                    content,
+                    token,
+                )
+                if not opts.quiet:
+                    print(f"Report uploaded: {result.get('content', {}).get('html_url', '')}")
+            except gh.GitHubAPIError as e:
+                print(f"Report upload failed: {e}")
+                return 1
 
     # Determine exit code
     has_errors = any(f.severity == "error" for f in all_findings)
